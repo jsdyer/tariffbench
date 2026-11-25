@@ -1,0 +1,7 @@
+[
+  {"name": "NAS / home server", "watts": 60, "hours": 24, "quantity": 1},
+  {"name": "Desktop computer", "watts": 150, "hours": 6, "quantity": 1},
+  {"name": "Router", "watts": 12, "hours": 24, "quantity": 1},
+  {"name": "Space heater", "watts": 1500, "hours": 4, "quantity": 1},
+  {"name": "UPS overhead only", "watts": 15, "hours": 24, "quantity": 1}
+]

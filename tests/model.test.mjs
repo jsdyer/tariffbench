@@ -1,21 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cleanLines } from '../web/model.mjs';
-test('trims, removes blanks and preserves first-seen order', () => {
-  assert.deepEqual(cleanLines('  Halifax\nLangley\nHalifax\n\nVancouver  '), {
-    text: 'Halifax\nLangley\nVancouver', count: 3, removed: 1,
-  });
-});
-test('supports Windows and old Mac line endings', () => {
-  assert.equal(cleanLines('a\r\nb\ra').text, 'a\nb');
-});
-test('empty text and whitespace produce an empty result', () => {
-  assert.deepEqual(cleanLines(' \n\t'), { text: '', count: 0, removed: 0 });
-});
-test('preserves case and Unicode', () => {
-  assert.equal(cleanLines('Québec\nquébec\n東京\nQuébec').text, 'Québec\nquébec\n東京');
-});
-test('treats markup as ordinary text', () => {
-  assert.equal(cleanLines('<script>alert(1)</script>\n<script>alert(1)</script>').text, '<script>alert(1)</script>');
-});
-test('rejects non-text input', () => { assert.throws(() => cleanLines(null), TypeError); });
+import fs from 'node:fs';
+import { calculate, bill, deviceKwh, validateScenario, tieredFlatCrossover, freshness, scenarioFile, parseScenario, resultCsv } from '../web/model.mjs';
+const rates = JSON.parse(fs.readFileSync(new URL('../web/rates.json', import.meta.url)));
+const defaults = () => ({ region: 'bc', days: 30, months: 1, baseKwh: 600, taxPercent: 0, baseShares: { overnight: 0, peak: 0 }, deviceShares: { overnight: 0, peak: 0 }, devices: [{ name: 'NAS', watts: 60, hours: 24, quantity: 1 }] });
+const close = (a, b) => assert.ok(Math.abs(a - b) < 1e-8, `${a} != ${b}`);
+test('device units and quantities: watts to kWh', () => { close(deviceKwh({ watts: 60, hours: 24, quantity: 2 }, 30), 86.4); });
+test('BC tier threshold is per actual day, not rounded 675/month', () => { const total = bill(rates, 'bc-tiered', 700, 30, 1, {overnight: 0, peak: 0}); close(total.lowKwh, 665.754); close(total.highKwh, 34.246); close(total.fixed, 7.032); close(total.energy, 665.754 * .1187 + 34.246 * .1408); close(total.rider, -(total.energy + total.fixed) * .015); });
+test('device incremental cost crosses the shared household tier', () => { const s = defaults(); s.baseKwh = 650; const r = calculate(rates, s).plans[0]; close(r.incremental, (15.754 * .1187 + 27.446 * .1408) * .985); assert.ok(r.incremental > 43.2 * .1187 * .985); });
+test('fixed charges occur once, including a zero-consumption bill', () => { const s = defaults(); s.baseKwh = 0; s.devices = []; const r = calculate(rates, s).plans[0]; close(r.combined.total, .2344 * 30 * .985); close(r.incremental, 0); });
+test('TOD charge and credit do not inherit BC riders', () => { const r = bill(rates, 'bc-flat-tod', 100, 30, 1, { overnight: 60, peak: 10 }); close(r.timeOfDay, -2.5); close(r.subtotal, (100 * .127 + 30 * .25) * .985 - 2.5); });
+test('TOD base and device shares are separately energy weighted', () => { const s = defaults(); s.baseShares.peak = 100; s.deviceShares.overnight = 100; const r = calculate(rates, s).plans.find(p => p.plan === 'bc-flat-tod'); close(r.incremental, 43.2 * (.127 * .985 - .05)); });
+test('NS uses combined price once and entered monthly charges', () => { const s = defaults(); s.region = 'ns'; s.days = 61; s.months = 2; const r = calculate(rates, s); assert.equal(r.plans.length, 1); close(r.plans[0].combined.total, (600 + 87.84) * .19128 + 2 * 20.08); close(r.plans[0].incremental, 87.84 * .19128); });
+test('annualized use uses 365 days and NS twelve charges, not period times twelve', () => { const s = defaults(); s.region = 'ns'; const r = calculate(rates, s).plans[0]; close(r.annual, (600 / 30 + 1.44) * 365 * .19128 + 12 * 20.08); close(r.annualIncremental, 1.44 * 365 * .19128); });
+test('tax adjustment explicitly applies once', () => { const s = defaults(); const before = calculate(rates, s); s.taxPercent = 5; const after = calculate(rates, s); close(after.plans[0].combined.total, before.plans[0].combined.total * 1.05); close(after.plans[0].incremental, before.plans[0].incremental * 1.05); });
+test('tiered/flat crossover includes the fixed charge difference', () => { const kwh = tieredFlatCrossover(rates, 31); const args = [kwh, 31, 1, {overnight: 0, peak: 0}]; close(bill(rates, 'bc-tiered', ...args).total, bill(rates, 'bc-flat', ...args).total); });
+test('reject invalid and excessive input rather than showing stale results', () => { for (const value of ['', -1, Infinity, 'oops']) { const s = defaults(); s.baseKwh = value; assert.throws(() => validateScenario(s)); } const s = defaults(); s.deviceShares = {overnight: 60, peak: 41}; assert.throws(() => calculate(rates, s), /cannot exceed/); s.deviceShares = {overnight: 0, peak: 0}; s.devices[0].quantity = 1.5; assert.throws(() => calculate(rates, s), /whole/); });
+test('arbitrary device additions are not tied to the preset count', () => { const s = defaults(); s.devices = Array.from({length: 25}, (_, i) => ({name: `Custom ${i}`, watts: 100, hours: 2, quantity: 1})); close(calculate(rates, s).addedKwh, 150); });
+test('scenario round trip is versioned and rejects unsupported files', () => { const s = defaults(); assert.deepEqual(parseScenario(scenarioFile(s, rates)).scenario, s); assert.throws(() => parseScenario('{"version":2}'), /not a supported/); assert.throws(() => parseScenario('x'.repeat(200001)), /large/); });
+test('rates warn on review age and reference expiry without changing dates', () => { assert.deepEqual(freshness(rates, new Date('2026-11-25')), { ageDays: 1, expired: false, stale: false }); assert.equal(freshness(rates, new Date('2027-01-01')).expired, true); assert.equal(freshness(rates, new Date('2027-03-01')).stale, true); assert.equal(rates.reviewed_at, '2026-11-24'); });
+test('CSV escapes spreadsheet formula names and includes edition', () => { const s = defaults(); s.devices[0].name = '=HYPERLINK("test")'; const csv = resultCsv(calculate(rates, s), rates); assert.ok(csv.includes('"\'=HYPERLINK(""test"")"')); assert.ok(csv.includes(rates.edition)); });
+test('CSV guards whitespace-prefixed formulas from imported labels', () => { for (const label of ['\t=HYPERLINK("test")', '\r=1+1', '  +1', '\n@SUM(1)']) { const s = defaults(); s.devices[0].name = label; const imported = parseScenario(scenarioFile(s, rates)); const csv = resultCsv(calculate(rates, imported.scenario), rates); assert.ok(csv.includes('"\'' + label.replaceAll('"', '""') + '"')); } });
+test('hidden fields cannot block a different province', () => { const s = defaults(); s.months = ''; assert.doesNotThrow(() => calculate(rates, s)); s.region = 'ns'; s.months = 2; s.baseShares.peak = ''; s.deviceShares.overnight = 'bad'; assert.doesNotThrow(() => calculate(rates, s)); });

@@ -1,34 +1,40 @@
 <!doctype html>
 <html lang="en-CA">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <meta name="description" content="{{DESCRIPTION}}">
-  <title>{{TITLE}} · CoolCode</title>
-  <link rel="stylesheet" href="./style.css">
-  <script type="module" src="./app.mjs"></script>
-  {{VISIT_COUNTER}}
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="{{DESCRIPTION}}"><title>Electricity Cost Calculator for BC and Nova Scotia · {{TITLE}}</title>
+<link rel="stylesheet" href="./style.css"><script type="module" src="./app.mjs"></script>{{VISIT_COUNTER}}
 </head>
 <body data-tool-id="{{TOOL_ID}}">
-  <a class="skip" href="#main">Skip to content</a>
-  <header><a href="https://coolcode.ca/">← CoolCode.ca</a><a href="{{SOURCE_URL}}">Source &amp; instructions ↗</a></header>
-  <main id="main">
-    <p class="eyebrow">Browser tool starter</p>
-    <h1>{{TITLE}}</h1>
-    <p class="intro">{{DESCRIPTION}}</p>
-    <section aria-labelledby="example-title">
-      <h2 id="example-title">Clean a list</h2>
-      <p>Trim spaces, skip blank lines and remove exact duplicates. Capitalization stays distinct.</p>
-      <div class="panels">
-        <div><label for="input">Your lines</label><textarea id="input" rows="10" maxlength="100000" spellcheck="false" placeholder="Paste one item per line"></textarea></div>
-        <div><label for="output">Cleaned lines</label><textarea id="output" rows="10" readonly spellcheck="false"></textarea></div>
-      </div>
-      <div class="actions"><button id="sample" type="button">Load example</button><button id="clear" type="button">Clear</button><button id="copy" type="button" hidden>Copy result</button></div>
-      <p id="status" role="status" aria-live="polite">Paste a list to begin.</p>
-      <noscript><p>This tool needs JavaScript to process your text. The source is available above.</p></noscript>
-    </section>
-    <aside aria-label="Privacy"><strong>Stays on your device.</strong> The browser processes your text in this tab. Reloading clears it.</aside>
-  </main>
-  <footer>Part of <a href="https://coolcode.ca/">the CoolCode collection</a>. {{ISSUE_LINK}}</footer>
-</body>
-</html>
+<a class="skip" href="#main">Skip to calculator</a>
+<header class="topbar"><a href="https://coolcode.ca/">← CoolCode.ca</a><a href="{{SOURCE_URL}}">Source &amp; instructions ↗</a></header>
+<main id="main">
+<div class="hero"><p class="eyebrow">HOUSEHOLD ENERGY / BC + NOVA SCOTIA</p><h1>{{TITLE}}</h1><p class="lead">Put a price on your plugged-in life.</p><p class="intro">See what a home server, computer or any appliance adds to your bill. Compare BC Hydro plans or estimate Nova Scotia Power standard service, with fixed charges and tiers included.</p><div class="badges"><span>Canadian dollars</span><span>Private browser calculation</span><span id="edition-badge">Loading rate edition…</span></div></div>
+<p id="freshness" class="notice" role="status"></p>
+<div id="load-error" class="error" hidden></div>
+<form id="calculator" novalidate>
+<div class="workspace">
+<div class="inputs">
+<section class="card"><div class="section-heading"><span class="step">1</span><h2>Your bill's starting point</h2></div>
+<label for="region">Electricity provider</label><select id="region"><option value="bc">British Columbia · BC Hydro</option><option value="ns">Nova Scotia · Nova Scotia Power</option></select>
+<div class="fields two"><div><label for="days">Days in this billing period</label><input id="days" type="number" min="1" max="366" step="1" value="30"></div><div id="months-field" hidden><label for="months">Months billed for basic charge</label><input id="months" type="number" min="0.01" max="12" step="0.01" value="1"><small>Use the charge period on your bill; 60 days is not automatically 2 months.</small></div></div>
+<label for="base-kwh">Other household use in this period <span>kWh</span></label><input id="base-kwh" type="number" min="0" max="1000000" step="any" value="600"><small>Exclude the devices you add below. For a new device, use your existing bill's kWh here. For a device already on your bill, subtract its estimated kWh first.</small>
+<details><summary>Optional tax adjustment</summary><label for="tax">Simple tax adjustment <span>%</span></label><input id="tax" type="number" min="0" max="100" step="any" value="0"><small>Default is before tax. Enter your own effective percentage if useful. Credits, rebates, rounding rules, arrears and special charges are not modelled.</small></details>
+</section>
+<section class="card"><div class="section-heading"><span class="step">2</span><h2>Add your devices</h2></div><p class="hint">Use measured average watts where possible. Nameplate watts can overestimate cycling loads. UPS overhead should exclude devices already counted.</p>
+<div id="devices"></div><div class="add-row"><select id="preset" aria-label="Device starting point"><option value="custom">Custom device</option></select><button id="add-device" type="button">+ Add device</button></div><p class="hint">Preset wattages are editable examples, not measured product specifications.</p>
+</section>
+<section id="time-card" class="card"><div class="section-heading"><span class="step">3</span><h2>When do you use it?</h2></div><p class="hint">Only affects the two BC time-of-day comparisons. Enter shares of <strong>energy</strong>, not hours. Default shares illustrate a constant 24-hour load.</p>
+<div class="time-key"><span>Overnight<br><strong>11 pm–7 am · −5¢</strong></span><span>Peak<br><strong>4 pm–9 pm · +5¢</strong></span><span>Other hours<br><strong>No adjustment</strong></span></div>
+<fieldset><legend>Other household energy</legend><div class="fields two"><div><label for="base-night">Overnight <span>%</span></label><input id="base-night" type="number" min="0" max="100" step="any" value="33.3333333333"></div><div><label for="base-peak">Peak <span>%</span></label><input id="base-peak" type="number" min="0" max="100" step="any" value="20.8333333333"></div></div><small id="base-other"></small></fieldset>
+<fieldset><legend>Added devices, together</legend><div class="fields two"><div><label for="device-night">Overnight <span>%</span></label><input id="device-night" type="number" min="0" max="100" step="any" value="33.3333333333"></div><div><label for="device-peak">Peak <span>%</span></label><input id="device-peak" type="number" min="0" max="100" step="any" value="20.8333333333"></div></div><small id="device-other"></small></fieldset>
+<p class="hint">BC's option applies daily in local utility time. Confirm meter and account eligibility before switching. This is a scenario, not a recommendation based on your actual interval data.</p>
+</section>
+</div>
+<div class="outputs"><section class="results card"><p class="eyebrow">YOUR ESTIMATE</p><p id="validation" class="error" role="alert" hidden></p><div id="result-content"><div class="energy-summary" aria-live="polite" aria-atomic="true"><div><span>Added devices</span><strong id="added-kwh">—</strong><small>kWh this period</small></div><div><span>Household + devices</span><strong id="total-kwh">—</strong><small>kWh this period</small></div></div><p id="period-note" class="hint"></p><div id="plan-results"></div><p id="crossover" class="hint"></p><p class="result-note">Added-device cost = bill with all devices − bill without them. Devices share your household's tier; fixed charges do not get charged again.</p><p class="hint">Annual figures apply the same daily usage over 365 days and 12 monthly charges at this rate edition. They are not a forecast of future tariffs or seasonal consumption.</p></div></section>
+<section class="card compact"><h2>Keep a scenario</h2><p class="hint">Nothing saves automatically. Save locally on this browser, or download a private file to keep or compare later.</p><div class="actions"><button id="save" type="button">Save on this device</button><button id="restore" type="button">Restore saved</button><button id="forget" type="button">Delete saved</button><button id="export-json" type="button">Download scenario</button><button id="import" type="button">Open scenario</button><button id="export-csv" type="button">Export results CSV</button></div><input id="import-file" type="file" accept=".json,application/json" hidden><p id="status" role="status" aria-live="polite"></p></section>
+</div></div></form>
+<section class="card reference"><p class="eyebrow">CHECK THE ASSUMPTIONS</p><h2>Which rates are in this estimate?</h2><div id="rate-reference"></div><p>Standard residential service only. BC minimum daily charges are included. Nova Scotia's published combined energy price already includes its listed fuel, operational and efficiency charges; they are not added a second time. NS equipment-based time-of-day service and enrollment-limited pilots are not modelled.</p><p>Electricity costs here exclude taxes unless you enter an adjustment, rebates, special service charges and future rate changes. Your bill and the utility's applicable tariff take precedence. For billing periods crossing a rate change, split your estimate at the effective date.</p><details><summary>Rate maintenance and privacy</summary><p id="maintenance"></p><p>Your device names, wattages, bill inputs and scenario files are processed in this browser. They are not uploaded. Opening the page loads public application files and the site's aggregate visit counter; calculator inputs are not included. Saved scenarios stay in this browser until you delete them.</p></details></section>
+<noscript><p class="notice">JavaScript is required for this calculator. Current official tariff links and the calculation source are available in the repository.</p></noscript>
+</main><footer>Made for everyday decisions. Part of <a href="https://coolcode.ca/">CoolCode</a>. {{ISSUE_LINK}}</footer>
+</body></html>

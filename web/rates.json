@@ -1,0 +1,37 @@
+{
+  "edition": "2026-11-reviewed",
+  "reviewed_at": "2026-11-24",
+  "review_after_days": 90,
+  "valid_through": "2026-12-31",
+  "currency": "CAD",
+  "bc": {
+    "effective_from": "2026-04-01",
+    "tier1": 0.1187,
+    "tier2": 0.1408,
+    "threshold_kwh_per_day": 22.1918,
+    "tiered_fixed_per_day": 0.2344,
+    "flat": 0.1270,
+    "flat_fixed_per_day": 0.25,
+    "deferral_rider": -0.015,
+    "trade_income_rider": 0,
+    "tod_effective_from": "2026-07-01",
+    "overnight_adjustment": -0.05,
+    "peak_adjustment": 0.05,
+    "sources": [
+      {"label": "BC Hydro tiered rates", "url": "https://app.bchydro.com/accounts-billing/rates-energy-use/electricity-rates/residential-rates/tiered.html"},
+      {"label": "BC Hydro flat rates", "url": "https://app.bchydro.com/accounts-billing/rates-energy-use/electricity-rates/residential-rates/flat.html"},
+      {"label": "BC Hydro time-of-day option", "url": "https://app.bchydro.com/accounts-billing/rates-energy-use/electricity-rates/residential-rates/time-of-day.html"},
+      {"label": "Official electric tariff: RS 1101, 1151, 1901, 1904, 2101", "url": "https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/tariff-filings/electric-tariff/bchydro-electric-tariff.pdf"}
+    ]
+  },
+  "ns": {
+    "effective_from": "2026-05-01",
+    "energy": 0.19128,
+    "fixed_per_month": 20.08,
+    "sources": [
+      {"label": "Nova Scotia Power standard residential rates (combined energy charge)", "url": "https://www.nspower.ca/your-home/residential-rates/standard-residential-service-rate"},
+      {"label": "Nova Scotia Power 2026 rate changes", "url": "https://www.nspower.ca/about-us/regulations/changes-to-power-rates"},
+      {"label": "Official 2026 tariff book", "url": "https://www.nspower.ca/docs/default-source/regulatory/tariff-book-2026.pdf"}
+    ]
+  }
+}

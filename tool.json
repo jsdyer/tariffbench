@@ -1,16 +1,22 @@
 {
-  "id": "coolcode-tool-template",
-  "title": "CoolCode Tool Starter",
-  "description": "A browser-only example that trims lines and removes exact duplicates.",
-  "category": "security",
-  "tags": ["text", "lines", "duplicates"],
-  "icon": "scan-search",
-  "url": "/coolcode-tool-template/",
-  "source": "https://github.com/jsdyer/coolcode-tool-template",
+  "id": "tariffbench",
+  "title": "Tariff Bench",
+  "description": "Estimate device electricity costs and compare BC Hydro plans or Nova Scotia Power standard rates.",
+  "category": "money",
+  "tags": [
+    "electricity",
+    "energy",
+    "British Columbia",
+    "Nova Scotia",
+    "calculator"
+  ],
+  "icon": "calculator",
+  "url": "/tariffbench/",
+  "source": "https://github.com/jsdyer/tariffbench",
   "hosting": "project",
   "access": "browser",
   "data_info": {
-    "mode": "local",
-    "detail": "The browser reads the text you paste and compares its lines."
+    "mode": "reference",
+    "detail": "Private device and household inputs with manually reviewed BC Hydro and Nova Scotia Power residential tariffs, effective April/May 2026; reviewed November 24, 2026."
   }
 }

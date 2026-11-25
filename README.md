@@ -1,179 +1,63 @@
-# CoolCode browser tool template
+# Tariff Bench
 
-A starting point for independent tools at `coolcode.ca/<repo>/`: a working local-text
-example, responsive UI, Python standard-library build, Node tests, PR checks and Pages
-publication. No npm install is needed.
+[Open the electricity cost calculator](https://coolcode.ca/tariffbench/).
 
-## Using the example
+Estimate how much your NAS, desktop, heater or other device adds to the household electricity bill. Compare BC Hydro tiered and flat residential service, with optional time-of-day overlays, or calculate Nova Scotia Power standard residential service. No account, API key, file upload or installation is required.
 
 <!-- coolcode:guide -->
-The first occurrence of each trimmed line keeps its place. Compare the output with the original text before copying the result.
+Enter actual billing days and the household kWh **excluding** the devices in your scenario. Add arbitrary devices with average watts, hours per day and quantity. Tariff Bench calculates total bills and the extra cost of all devices together, sharing the household's BC tier threshold rather than giving each device a new lower tier. BC time-of-day estimates use separate energy shares for household and added-device loads; check eligibility with BC Hydro before switching. NS standard service uses its published combined energy rate and your actual number of billed months. Rates were manually reviewed November 24, 2026, with effective dates shown on the page; this reference edition ends December 31, 2026. Tax defaults to zero; an optional simple percentage does not reproduce all tax/rebate rules. Save on your device only when requested, download/open scenario JSON or export CSV results. No inputs leave the browser. NS time-of-day equipment tariffs and enrollment-limited pilots are outside this calculator's coverage.
 <!-- /coolcode:guide -->
 
-For a real tool, replace this paragraph with one or two plain-text sentences
-about an example, a limit or how to interpret the results. Keep the source,
-coverage, refresh behaviour and a worked example in this README as appropriate.
-When updating a tool, revise any details its behaviour has changed and keep the
-homepage's shorter data-source sentence in `tool.json` accurate.
-The hub imports the marked note into the catalogue README.
+## Rate edition and calculations
 
-## One-time template setup
+`web/rates.json` is the reviewed, versioned source of rates and official source links. It is bundled with the application; a build does **not** fetch rates or change the review timestamp.
 
-Enable **Settings → General → Template repository** here. This repository does not
-need Pages enabled: its workflow builds/tests but intentionally skips deployment.
-New copies also skip deployment until `scripts/init.py` sets the tool ID to match
-their repository name. This lets you create the repo before configuring Pages.
+| Service | Effective date | Included charges |
+| --- | --- | --- |
+| BC Hydro tiered (RS 1101) | April 1, 2026 | $0.1187/kWh up to **22.1918 kWh per billing day**, then $0.1408/kWh; $0.2344/day basic charge |
+| BC Hydro flat (RS 1151) | April 1, 2026 | $0.1270/kWh and $0.25/day basic charge |
+| BC riders (RS 1901 / 1904) | April 1, 2026 | −1.5% deferral rider and 0% trade income rider on base energy plus basic charge |
+| BC time of day (RS 2101) | July 1, 2026 | −$0.05/kWh overnight (23:00–07:00), +$0.05/kWh at peak (16:00–21:00), daily in utility local time; other hours unchanged |
+| NS standard residential | May 1, 2026 | Published combined customer energy rate $0.19128/kWh; $20.08 per billed month |
 
-## Start a new tool
+**BC riders exclude RS 2101 adjustments**, as specified in the electric tariff. NS's published combined energy price includes its listed fuel, operational and efficiency charges. The raw energy line in the tariff book is a different figure; do not substitute it without accounting for applicable riders, or add riders a second time to the combined price.
 
-1. Select **Use this template → Create a new repository**, choose owner `jsdyer`,
-   a unique lowercase name such as `my-tool`, and public visibility.
-2. Clone the new repository. Use Python 3.12+ and Node 24+.
-3. Set the identity, using a slug that matches the repository name:
+Official sources are linked in `web/rates.json` and in the tool: [BC electric tariff](https://www.bchydro.com/content/dam/BCHydro/customer-portal/documents/corporate/tariff-filings/electric-tariff/bchydro-electric-tariff.pdf), [NS standard rates](https://www.nspower.ca/your-home/residential-rates/standard-residential-service-rate), and [NS tariff book](https://www.nspower.ca/docs/default-source/regulatory/tariff-book-2026.pdf).
 
-```sh
-python3 scripts/init.py my-tool --title "My Tool" --description "Describe what this tool does."
-```
+- Device kWh = watts ÷ 1000 × daily hours × quantity × billing days. A nameplate is not an average draw; use measurements for cycling loads and distinguish UPS overhead from its downstream devices.
+- Added-device cost = whole-house bill with devices − whole-house bill without devices. Fixed charges occur once; devices share one tier. This estimates a change to the household bill, not a standalone service account for each device.
+- Time-of-day percentages describe energy, not simply hours. Defaults illustrate constant use across 24 hours. Changes to these shares do not change overall kWh.
+- Annualized results apply the same daily use for 365 days, 365 BC daily charges or 12 NS monthly charges, at the displayed rate edition. They are not a future-rate or seasonal-use forecast.
+- BC tier/flat crossover includes the fixed-charge difference; identical time-of-day adjustments cancel in that comparison.
+- All amounts are CAD. Currency is rounded for display only. Taxes are excluded unless the visitor supplies a simple effective percentage. No tax rate, provincial rebate, special charge, credit or payment adjustment is inferred.
+- Use actual utility billing periods. Split estimates at tariff change dates. NS billing months are entered separately from days, including fractional months if applicable to the actual bill.
+- Standard service only: NS thermal-storage time-of-day and enrollment-limited time-of-use/critical-peak programs are not modelled. BC meter/account eligibility is not inferred.
 
-Review the category, tags and icon in `tool.json`. `access: "browser"` tells the main
-catalogue that the tool works immediately without installation. `--owner` supports a different
-GitHub owner, but only projects owned by `jsdyer` inherit the CoolCode domain.
+## Privacy
 
-4. Replace the example in `web/` and its tests. Update the privacy explanation,
-   source attribution and README to describe the real tool.
-5. Test and preview:
+The application fetches its public `rates.json` and `presets.json`, then calculates locally. Inputs and imported scenario files are never uploaded or included in URLs. A namespaced browser-storage key, `coolcode:tariffbench:scenario:v1`, is written only by **Save on this device**, read only by **Restore saved**, and removed by **Delete saved**. Files you export contain your entered device names and usage. The common CoolCode aggregate visit counter does not receive calculator inputs.
+
+## Expand or customize
+
+1. Edit `web/presets.json` to add or change suggested devices. Wattages are explicitly editable illustrations. Visitors can already add custom devices without editing this file (up to a defensive 200-row limit).
+2. For tariff updates, review the official customer pages **and** applicable tariff schedules/riders. Edit `web/rates.json`; record the true effective dates, a new `edition`, genuine `reviewed_at`, and a conservative `valid_through`. Never refresh these fields merely because a build succeeded. Keep earlier editions accessible in Git history.
+3. Update rate examples and coverage here, plus model tests where the tariff structure changes. The UI derives displayed prices from the config. If a plan adds seasonal periods or eligibility rules, implement and test them before adding it to the supported plan list.
+4. Run the checks below and inspect both desktop and mobile at a project URL. A push to `main` publishes only after checks pass. PRs build a reviewable artifact without deployment.
+5. Update the hub catalogue/guide, audit coverage, generated Worker, sitemap and watchdog registration using [the tool lifecycle](https://github.com/jsdyer/jsdyer.github.io/blob/main/docs/tool-lifecycle.md). The tool has **no scheduled refresh workflow**. Register it as a manual tariff reference, not a scheduled-data app. A warning appears after 90 days since review or after the edition's end date; it does not imply rates are verified between reviews.
+
+The 2026 edition ends December 31 because NS has announced 2027 changes. Those future combined charges are not guessed. Confirm the final customer rates and all riders before publishing a new edition.
+
+## Development and checks
 
 ```sh
 node --test tests/*.test.mjs
 python3 -m unittest discover -s tests -v
 python3 scripts/build.py
-python3 -m http.server 8000 --directory dist
-```
-
-Open `http://localhost:8000/`. The example trims lines, skips blanks and removes exact
-duplicates, preserving first-seen order and capitalization. It processes the text in tab memory. Update that explanation if your app behaves differently.
-
-CI also tests the browser flow and mobile layout at a project subpath. Replace the
-sample assertions in `tests/browser_smoke.py` when implementing your own UI. To run
-that check locally (optional for ordinary preview):
-
-```sh
-python3 -m venv .venv
-. .venv/bin/activate
 python3 -m pip install -r tests/browser-requirements.txt
-python3 -m playwright install --with-deps chromium
+# Use an installed Chromium-compatible browser, or install Playwright Chromium.
+python3 -m playwright install chromium
 python3 tests/browser_smoke.py
+python3 -m http.server --directory dist 8080
 ```
 
-Playwright is a test-only dependency; the app and its static build do not use it.
-
-## Expand or customize
-
-Every implemented tool should replace this section with its actual configuration
-path and a working example. A small `config.json` can hold default entities,
-query presets, source choices and request limits. Those defaults should be useful
-starting points, while visitors can enter other valid inputs whenever the source
-supports them. Keep provider limits explicit and separate from the starter list.
-
-Derive counts, filters and item validation from the current data. Do not require
-exactly the initial number of items. Add a test that expands the configuration,
-and keep historical captures readable when their coverage differs from today's
-watchlist. Display the selected capture date accurately.
-
-Document which changes need only a normal code push and which also need a data
-refresh. Include the refresh command or exact GitHub workflow and input, followed
-by the publication step. A successful code build need not mean a new collection
-has been fetched. The starter itself has no external collection or refresh.
-
-## Publish and register
-
-When the actual tool is ready, in the **new tool repository** set **Settings → Pages → Build and deployment →
-Source → GitHub Actions**. Push to `main`, or manually run **Browser tool · Check and
-publish** after enabling Pages. If the initial deployment ran before Pages was enabled,
-enable it and rerun. PRs only check/build and provide a downloadable preview artifact.
-
-Keep `{{VISIT_COUNTER}}` in the page head and `{{ISSUE_LINK}}` in the footer when replacing the starter UI. The build enables these for initialized CoolCode repositories. The shared counter records aggregate opens on coolcode.ca by public tool ID. Toolbox inputs and URL parameters are excluded. The issue link opens a reporting form with the tool already selected.
-
-Keep app-owned asset paths and module imports relative. Check `https://coolcode.ca/my-tool/`.
-Do not add a CNAME or set `coolcode.ca` as this project's custom domain; the account
-site supplies it. Only successful `main` builds deploy.
-
-After verifying the app, copy the reviewed object from `tool.json` into `data/tools.json`
-in [the main site](https://github.com/jsdyer/jsdyer.github.io). Each tool still builds
-independently. The hub generates the visitor Worker ID list, watchdog targets and sitemap; deploy and verify the affected services before considering the release complete. Update the hub record when listing metadata changes; the hub is the
-authority for discovery. Every change must follow the [mandatory lifecycle](https://github.com/jsdyer/jsdyer.github.io/blob/main/docs/tool-lifecycle.md). App-only changes may leave integrations unchanged, but this must be checked; documentation, source fields, schedules and registration changes also require the hub update.
-
-The main site separates **Use in your browser** from **Install yourself**. An app
-that asks for a file is still a browser tool. Standalone Linux packages should start
-in their own repositories with their own build/release workflow, rather than copying
-this browser-only scaffold. Their hub record uses `access: "install"`, links to an
-installation guide, and includes `requirements`.
-
-## Files
-
-| Path | Purpose |
-| --- | --- |
-| `tool.json` | Page metadata and a ready-to-copy catalogue record |
-| `web/` | HTML, responsive CSS, DOM interactions and separate model logic |
-| `scripts/build.py` | Escape metadata and build `web/` into `dist/` |
-| `scripts/init.py` | Set a new project's identity |
-| `scripts/add_schedule_guard.py` | Add an opt-in guard for explicitly selected scheduled collectors |
-| `tests/` | Application and builder tests |
-| `.github/workflows/pages.yml` | Check PRs and publish successful main builds |
-| `AGENTS.md` | Instructions for future coding work |
-
-Namespace optional storage as `coolcode:<tool-id>:<key>`; CoolCode paths share a
-browser origin. Don't save pasted text/uploads by default. Document external APIs
-and send only the information needed for the selected action. Never embed secrets.
-
-Scheduled refresh is opt-in. Validate source data before deploying, display its date,
-and preserve the last good deployment on failure. Public-repository schedules can
-stop after 60 days without repository activity.
-
-When adding a collector with `on.schedule`, also keep `workflow_dispatch` available
-for the independent Linux server scheduler. Generate a separate schedule guard,
-listing every scheduled collector in the repository:
-
-```sh
-python3 scripts/add_schedule_guard.py --repository jsdyer/my-tool .github/workflows/pages.yml
-```
-
-Replace the repository and workflow paths with the real values. Review the generated
-allowlist, commit `.github/workflows/schedule-guard.yml`, and verify its first push
-run. Re-run the command with the complete list when adding, renaming or removing a
-collector. The guard runs weekly, independently of collector failures, and calls
-GitHub's enable-workflow API for those paths and itself. It restores workflows
-disabled for inactivity and preserves manually disabled workflows. It does not
-fetch data, create dummy commits or change source/check timestamps.
-
-This is an interim mitigation: GitHub does not document active-workflow renewal as
-a permanent exemption, and scheduled runs can be delayed or dropped. Register the
-collector and its freshness expectations in the independent server scheduler too.
-Document its real data check, collection and publication steps in the tool README.
-The starter has no scheduled collector and therefore ships no recurring guard job.
-
-Templates don't propagate future edits automatically. Adopt fixes explicitly and
-consider a versioned reusable workflow once several tools confirm the shared process.
-Choose and add the intended software license before distributing a new project.
-
-## Search metadata
-
-Initialize the page title with a concise task phrase, while keeping the creative
-app name in `--title`:
-
-```sh
-python3 scripts/init.py line-cleaner --title "Line Cleaner" --description "Trim lines and remove exact duplicates in your browser." --search-title "Trim Lines & Remove Duplicates"
-```
-
-The build adds static `WebApplication` JSON-LD, a free CAD offer and social metadata.
-For initialized jsdyer tools it also adds the canonical CoolCode URL. Forks and the
-uninitialized template do not claim a CoolCode canonical. Review the application
-category in `scripts/build.py` when adapting the tool; the starter is a utility.
-Do not invent ratings or reviews. Search markup does not guarantee a rich result.
-
-For a saved public dataset, pass Dataset objects to `add_search_metadata` from the
-app builder, with actual source attribution, licence, coverage and download URLs.
-Derive counts and dates from the same snapshot used by the app and show those details
-on the page. Keep source edition, retrieval and page-build time distinct. Omit an
-unknown source modification date instead of setting it to the current build time.
-Read the hub's `docs/search-discovery.md` for the release checklist.
+The builder is offline and publishes only `web/` with escaped catalogue metadata and search metadata. `dist/` is generated and excluded from Git. Pure math tests cover shared tiers, rider exclusions, exact thresholds, annualization, monthly charges, imports and invalid inputs. The browser smoke test checks live results, invalid states, custom inputs, local persistence, export/import, and mobile overflow at a project subpath. Set `CHROMIUM_PATH` to use a system browser.
