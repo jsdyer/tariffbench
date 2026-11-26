@@ -78,6 +78,12 @@ def main():
                 page.locator('#region').select_option('bc')
                 page.locator('#base-night').fill('33.3333333333')
                 page.locator('#base-peak').fill('20.8333333333')
+                page.locator('#appliance-model option').first.wait_for()
+                before=page.locator('#devices .device').count()
+                page.locator('#appliance-query').fill('Whirlpool')
+                page.locator('#add-appliance').click()
+                assert page.locator('#devices .device').count()==before+1
+                assert 'kWh/yr' in page.locator('#devices .device').last.locator('[data-key="name"]').input_value()
                 page.screenshot(path=str(screenshots / 'desktop.png'), full_page=True)
                 page.set_viewport_size({'width': 390, 'height': 844})
                 assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth')

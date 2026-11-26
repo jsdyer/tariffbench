@@ -1,3 +1,4 @@
+import { applianceWatts, applianceMatches } from './appliances.mjs';
 import { calculate, deviceKwh, freshness, tieredFlatCrossover, scenarioFile, parseScenario, resultCsv } from './model.mjs';
 const $ = id => document.getElementById(id);
 const money = value => new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD' }).format(value);
@@ -78,6 +79,15 @@ function download(name, text, type) {
   const url = URL.createObjectURL(new Blob([text], { type })); const a = el('a'); a.href = url; a.download = name; document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 function run(action) { try { action(); } catch (error) { status(error.message || 'That action could not be completed.'); } }
+
+async function appliances() {
+  const response=await fetch('./data/appliances.json'); if(!response.ok)throw Error('Appliance catalogue unavailable; you can still enter annual kWh or average watts manually.');
+  const catalogue=await response.json(); let matches=[];
+  function search(){matches=applianceMatches(catalogue.records,$('appliance-query').value);$('appliance-model').replaceChildren();for(const r of matches.slice(0,200)){const o=el('option',`${r.brand} ${r.model} · ${r.annualKwh} kWh/year · ${r.type}`);o.value=r.id;$('appliance-model').append(o)}$('appliance-status').textContent=`${catalogue.count.toLocaleString()} Canadian-market records · captured ${catalogue.capturedAt.slice(0,10)} UTC · source updated ${catalogue.sourceUpdatedAt?.slice(0,10)||'not supplied'}. ${matches.length} matches; showing ${Math.min(matches.length,200)}. Refine a broad search.`;$('add-appliance').disabled=!matches.length;}
+  $('appliance-query').addEventListener('input',search);
+  $('add-appliance').addEventListener('click',()=>{const r=matches.find(x=>x.id===$('appliance-model').value);if(!r)return;addDevice({name:`${r.brand} ${r.model} · ${r.annualKwh} kWh/yr`,watts:applianceWatts(r.annualKwh),hours:24,quantity:1});render();status(`Added ${r.brand} ${r.model} using its ${r.annualKwh} kWh/year reference rating.`);});search();
+}
+
 async function main() {
   [rates, presets] = await Promise.all(['rates.json', 'presets.json'].map(async path => { const response = await fetch(new URL(path, import.meta.url)); if (!response.ok) throw new Error(`Could not load ${path} (${response.status}).`); return response.json(); }));
   presets.forEach((preset, index) => { const option = el('option', preset.name); option.value = String(index); $('preset').append(option); });
@@ -92,5 +102,6 @@ async function main() {
   $('import').addEventListener('click', () => $('import-file').click());
   $('import-file').addEventListener('change', async () => { const file = $('import-file').files[0]; if (!file) return; try { if (file.size > 200000) throw new Error('Scenario file is too large (maximum 200 KB).'); const imported = parseScenario(await file.text()); applyScenario(imported.scenario); status(`Scenario opened locally.${imported.rateEdition !== rates.edition ? ' Recalculated using the displayed rate edition; the file used a different edition.' : ''}`); } catch (error) { status(`Could not open scenario: ${error.message}`); } finally { $('import-file').value = ''; } });
   addDevice(presets[0]); reference(); render();
+  appliances().catch(error=>{$('appliance-status').textContent=error.message;});
 }
 main().catch(error => { $('load-error').hidden = false; $('load-error').textContent = `The calculator could not start. ${error.message} Reload the page or report an issue below.`; $('calculator').hidden = true; });

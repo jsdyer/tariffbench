@@ -4,8 +4,10 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: '31 9 2 * *'
 permissions:
-  contents: read
+  contents: write
 jobs:
   build:
     runs-on: ubuntu-24.04
@@ -15,7 +17,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          persist-credentials: false
+          persist-credentials: true
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
@@ -26,6 +28,20 @@ jobs:
         run: node --test tests/*.test.mjs
       - name: Test the builder
         run: python3 -m unittest discover -s tests -v
+      - name: Refresh Canadian-market appliance catalogue
+        id: appliances
+        if: github.event_name != 'pull_request' && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' || hashFiles('web/data/appliances.json') == '')
+        run: python3 scripts/refresh_appliances.py
+      - name: Save validated appliance catalogue
+        if: steps.appliances.outcome == 'success'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add web/data/
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh Canadian-market appliance energy ratings"
+            git push
+          fi
       - name: Build the static application
         run: python3 scripts/build.py
       - name: Check whether the tool has been initialized

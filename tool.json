@@ -16,7 +16,7 @@
   "hosting": "project",
   "access": "browser",
   "data_info": {
-    "mode": "reference",
-    "detail": "Private device and household inputs with manually reviewed BC Hydro and Nova Scotia Power residential tariffs, effective April/May 2026; reviewed November 24, 2026."
+    "mode": "mixed",
+    "detail": "Private device and household inputs with manually reviewed BC Hydro and Nova Scotia Power residential tariffs, effective April/May 2026; reviewed November 24, 2026. Monthly ENERGY STAR Canadian-market appliance model snapshots provide rated annual kWh."
   }
 }
