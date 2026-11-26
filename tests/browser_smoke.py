@@ -78,7 +78,7 @@ def main():
                 page.locator('#region').select_option('bc')
                 page.locator('#base-night').fill('33.3333333333')
                 page.locator('#base-peak').fill('20.8333333333')
-                page.locator('#appliance-model option').first.wait_for()
+                page.locator('#appliance-model option').first.wait_for(state='attached')
                 before=page.locator('#devices .device').count()
                 page.locator('#appliance-query').fill('Whirlpool')
                 page.locator('#add-appliance').click()
